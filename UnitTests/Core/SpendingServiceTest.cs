@@ -11,7 +11,7 @@ namespace UnitTests.Core
 {
     public class SpendingServiceTest
     {
-        // Je n'ai pas l'habitude d'utiliser xUnit, donc je ne sais pas si c'est la meilleure maniere de faire pour la lisibilité
+        // Je n'ai pas l'habitude d'utiliser xUnit, donc je ne sais pas si c'est la meilleure manière de faire pour la lisibilité
         [Theory]
         [InlineData(1, 12, 100, "USD", Nature.Misc, "Taxi", SpendingCreationVerificationError.SpendingDateInTheFuture)]
         [InlineData(1, -12, 100, "USD", Nature.Misc, "Taxi", SpendingCreationVerificationError.SpendingDateExpired)]
