@@ -7,15 +7,15 @@ namespace Core.Interfaces
     /// <summary>
     /// Spending service
     /// </summary>
-    interface ISpendingService
+    public interface ISpendingService
     {
         /// <summary>
-        /// Gives the list a user spending in a specified ordre
+        /// List a user spending in the given order
         /// </summary>
         /// <param name="userId">Id of the user we want the spendings of</param>
-        /// <param name="order">Property by which we want to order </param>
-        /// <returns>A list in the specifed order</returns>
-        IEnumerable<Spending> ListOrdered(int userId, SpendingSortOrder order);
+        /// <param name="orderBy">Property by which we want to order </param>
+        /// <returns>The list of spending for the given user</returns>
+        IEnumerable<Spending> ListByUserId(int userId, SortSpendingBy orderBy);
 
         /// <summary>
         /// Add a spending for a user
@@ -27,6 +27,6 @@ namespace Core.Interfaces
         /// <param name="nature">Nature of the spending</param>
         /// <param name="comment">Description of the comment</param>
         /// <returns>A flag indicating errors (if any) in the query</returns>
-        SpendingCreationVerificationError AddSpending(int userId, DateTime dateInUtc, decimal amount, string isoCurrencySymbol, Nature nature, string comment);
+        SpendingCreationError TryCreateSpending(int userId, DateTime dateInUtc, decimal amount, string isoCurrencySymbol, Nature nature, string comment);
     }
 }

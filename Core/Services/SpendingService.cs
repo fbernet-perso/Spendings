@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Core.Interfaces;
 using Core.Model;
 
@@ -12,14 +11,22 @@ namespace Core.Services
     public class SpendingService : ISpendingService
     {
         private readonly ISpendingRepository _spendingRepository = null;
-        private readonly IUserRepository _userRepository = null;
 
-        public SpendingService(ISpendingRepository spendingRepository, IUserRepository userRepository)
+        public SpendingService(ISpendingRepository spendingRepository)
         {
             this._spendingRepository = spendingRepository;
-            this._userRepository = userRepository;
         }
 
+        /// <summary>
+        /// List a user spending in the given order
+        /// </summary>
+        /// <param name="userId">Id of the user we want the spendings of</param>
+        /// <param name="orderBy">Property by which we want to order </param>
+        /// <returns>The list of spending for the given user</returns>
+        public IEnumerable<Spending> ListByUserId(int userId, SortSpendingBy orderBy)
+        {
+            return this._spendingRepository.ListByUserId(userId, orderBy);
+        }
 
         /// <summary>
         /// Add a spending for a user
@@ -31,92 +38,86 @@ namespace Core.Services
         /// <param name="nature">Nature of the spending</param>
         /// <param name="comment">Description of the comment</param>
         /// <returns>A flag indicating errors (if any) in the query</returns>
-        public SpendingCreationVerificationError AddSpending(int userId, DateTime dateInUtc, decimal amount, string isoCurrencySymbol, Nature nature, string comment)
+        public SpendingCreationError TryCreateSpending(int userId, DateTime dateInUtc, decimal amount, string isoCurrencySymbol, Nature nature, string comment)
         {
-            User user = this._userRepository.LoadUser(userId);
-            SpendingCreationVerificationError verificationResult = this.VerifySpendingBeforeCreation(user, dateInUtc, amount, isoCurrencySymbol, comment);
+            User user = this._spendingRepository.LoadUserById(userId);
+            DateTime meaningfullDate = ExtractDate(dateInUtc);
 
-            if (verificationResult == SpendingCreationVerificationError.None)
+            SpendingCreationError verificationResult = VerifySpendingBeforeCreation(user, meaningfullDate, amount, isoCurrencySymbol, comment);
+
+            if (verificationResult == SpendingCreationError.None)
             {
-                Spending spending = this.BuildSpending(userId, dateInUtc, amount, isoCurrencySymbol, nature, comment);
-                this._spendingRepository.AddSpending(spending);
+                Spending spendingToCreate = new Spending();
+                spendingToCreate.User = user;
+                spendingToCreate.UserId = user.UserId;
+
+                spendingToCreate.Amount = amount;
+                spendingToCreate.Comment = comment;
+                spendingToCreate.DateInUtc = meaningfullDate;
+                spendingToCreate.ISOCurrencySymbol = isoCurrencySymbol;
+                spendingToCreate.Nature = nature;
+
+                this._spendingRepository.AddSpending(spendingToCreate);
             }
 
             return verificationResult;
         }
 
         /// <summary>
-        /// Gives the list a user spending in a specified ordre
-        /// </summary>
-        /// <param name="userId">Id of the user we want the spendings of</param>
-        /// <param name="order">Property by which we want to order </param>
-        /// <returns>A list in the specifed order</returns>
-        public IEnumerable<Spending> ListOrdered(int userId, SpendingSortOrder order)
-        {
-            IEnumerable<Spending> spendings = _spendingRepository.ListByUser(userId);
-
-            if (order == SpendingSortOrder.ByAmount)
-            {
-                spendings = spendings.OrderBy(s => s.Amount);
-            }
-            else
-            {
-                spendings = spendings.OrderBy(s => s.DateInUtc);
-            }
-
-            return spendings;
-        }
-
-        /// <summary>
         /// Checks if the data we have are correct for a spending creation
         /// </summary>
+        /// <param name="user">User owning the spending we want to create</param>
         /// <param name="dateInUtc">Date of the spending</param>
         /// <param name="amount">Amount of the spending</param>
         /// <param name="isoCurrencySymbol">Three-character ISO 4217 currency symbol of the spending</param>
         /// <param name="comment">Description of the comment</param>
         /// <returns>A flag indicating errors (if any)</returns>
-        private SpendingCreationVerificationError VerifySpendingBeforeCreation(User user, DateTime dateInUtc, decimal amount, string isoCurrencySymbol, string comment)
+        private SpendingCreationError VerifySpendingBeforeCreation(User user, DateTime dateInUtc, decimal amount, string isoCurrencySymbol, string comment)
         {
-            SpendingCreationVerificationError returnValue = SpendingCreationVerificationError.None;
+            SpendingCreationError returnValue = SpendingCreationError.None;
             if (dateInUtc.IsInTheFuture())
             {
-                returnValue |= SpendingCreationVerificationError.SpendingDateInTheFuture;
+                returnValue |= SpendingCreationError.SpendingDateInTheFuture;
             }
             if (dateInUtc.IsExpired())
             {
-                returnValue |= SpendingCreationVerificationError.SpendingDateExpired;
+                returnValue |= SpendingCreationError.SpendingDateExpired;
             }
             if (string.IsNullOrEmpty(comment))
             {
-                returnValue |= SpendingCreationVerificationError.MissingOrEmptyComment;
-            }
-            if (isoCurrencySymbol != user.ISOCurrencySymbol)
-            {
-                returnValue |= SpendingCreationVerificationError.SpendingCurrencyDiscrepancy;
+                returnValue |= SpendingCreationError.MissingOrEmptyComment;
             }
             if (amount <= 0)
             {
-                returnValue |= SpendingCreationVerificationError.SpendingAmountBelow0;
+                returnValue |= SpendingCreationError.SpendingAmountBelow0;
+            }
+
+            if (user == null)
+            {
+                returnValue |= SpendingCreationError.UserNotFound;
+            }
+
+            if (user != null && isoCurrencySymbol != user?.ISOCurrencySymbol)
+            {
+                returnValue |= SpendingCreationError.SpendingCurrencyDiscrepancy;
+            }
+
+            if (user != null && this._spendingRepository.SpendingExists(user.UserId, dateInUtc, amount))
+            {
+                returnValue |= SpendingCreationError.DuplicateSpending;
             }
 
             return returnValue;
         }
 
-
-        // On pourrait considerer qu'il faudrait sortir cette methode dans une classe dédiée.
-        // L'exemple étant simple, je n'ai pas poussé l'exercice jusque là
-        private Spending BuildSpending(int userId, DateTime dateInUtc, decimal amount, string isoCurrencySymbol, Nature nature, string comment)
+        /// <summary>
+        /// Extract the meaningfull part of a date
+        /// </summary>
+        /// <param name="dateinUtc">Spending date in utc</param>
+        /// <returns>The neaningfull part of a date</returns>
+        private static DateTime ExtractDate(DateTime dateInUtc)
         {
-            Spending returnValue = new Spending();
-
-            returnValue.UserId = this._userRepository.LoadUser(userId).UserId;
-            returnValue.Amount = amount;
-            returnValue.Comment = comment;
-            returnValue.DateInUtc = dateInUtc.Date;
-            returnValue.ISOCurrencySymbol = isoCurrencySymbol;
-            returnValue.Nature = nature;
-
-            return returnValue;
+            return dateInUtc.Date;// Il me semble que seule la date est significative pour une depense...
         }
     }
 }

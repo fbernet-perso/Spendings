@@ -3,9 +3,9 @@
     /// <summary>
     /// Sorting order for a list of spending
     /// </summary>
-    public enum SpendingSortOrder
+    public enum SortSpendingBy
     {
-        ByDate,
-        ByAmount
+        Date,
+        Amount
     }
 }

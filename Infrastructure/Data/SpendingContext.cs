@@ -15,10 +15,10 @@ namespace Infrastructure.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            IConfigurationBuilder builder = new ConfigurationBuilder()
+            IConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-            IConfigurationRoot config = builder.Build();
+            IConfigurationRoot config = configurationBuilder.Build();
 
             optionsBuilder
                 .UseLazyLoadingProxies()
@@ -43,9 +43,7 @@ namespace Infrastructure.Data
         private void SeedData(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()
-                .HasData(new User() { UserId = 1, LastName = "Stark", FirstName = "Anthony", ISOCurrencySymbol = new RegionInfo("US").ISOCurrencySymbol });
-            modelBuilder.Entity<User>()
-                .HasData(new User() { UserId = 2, LastName = "Romanov", FirstName = "Natacha", ISOCurrencySymbol = new RegionInfo("RU").ISOCurrencySymbol });
+                .HasData(User.SeedUsers());           
         }
 
     }

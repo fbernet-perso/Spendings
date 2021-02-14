@@ -12,40 +12,44 @@ namespace Core.Model
         /// User owning the spending
         /// </summary>
         [Required]
-        virtual public User User { get; set; }
+        virtual public User User { get; internal set; }
         [Required]
-        public int UserId { get; set; }
+        public int UserId { get; internal set; }
 
         /// <summary>
         /// When was the spending made in utc time
         /// </summary>
         [Required]
-        public DateTime DateInUtc { get; set; }
+        public DateTime DateInUtc { get; internal set; }
 
         /// <summary>
         /// Amount of the spending
         /// </summary>
         [Required]
-        public decimal Amount { get; set; }
+        public decimal Amount { get; internal set; }
 
         /// <summary>
         /// Three-character ISO 4217 currency symbol of this spending
         /// </summary>  
-        /// </summary>
         [Required]
         [MaxLength(3)]
-        public string ISOCurrencySymbol { get; set; }
+        public string ISOCurrencySymbol { get; internal set; }
 
         /// <summary>
         /// Nature of the spending
         /// </summary>
         [Required]
-        public Nature Nature { get; set; }
+        public Nature Nature { get; internal set; }
 
         /// <summary>
         /// Description of the spending
         /// </summary>
         [Required]
-        public string Comment { get; set; }
+        public string Comment { get; internal set; }
+
+        internal protected Spending()
+        {
+
+        }
     }
 }
