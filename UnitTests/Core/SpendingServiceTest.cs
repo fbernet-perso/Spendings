@@ -28,7 +28,7 @@ namespace UnitTests.Core
             User userNotFound = null;
 
             Mock<ISpendingRepository> spendingRepositoryMock = new Mock<ISpendingRepository>(MockBehavior.Strict);
-            spendingRepositoryMock.Setup(r => r.AddSpending(It.IsAny<Spending>()));
+            spendingRepositoryMock.Setup(r => r.AddSpending(It.IsAny<Spending>())).Callback<Spending>(s => CheckDateAreCorrect(s.DateInUtc));
             spendingRepositoryMock.Setup(r => r.LoadUserById(1)).Returns(ironMan);
             spendingRepositoryMock.Setup(r => r.LoadUserById(3)).Returns(userNotFound);
 
@@ -38,13 +38,31 @@ namespace UnitTests.Core
 
 
             // Act
-            // Adding/removing month to today
+            // Adding/removing months to today
             DateTime spendingDate = DateTime.Today.AddMonths(monthToAdd);
             ISpendingService sut = new SpendingService(spendingRepositoryMock.Object);
             SpendingCreationError outcome = sut.TryCreateSpending(userId, spendingDate, amount, currency, nature, comment);
 
             // Assert
             Assert.Equal(expectedOutcome, outcome);
+
+            Assert.Equal(expectedOutcome, outcome);
+            if (expectedOutcome == SpendingCreationError.None)
+            {
+                spendingRepositoryMock.Verify(s => s.AddSpending(It.IsAny<Spending>()), Times.Once);
+            }
+            else
+            {
+                spendingRepositoryMock.Verify(s => s.AddSpending(It.IsAny<Spending>()), Times.Never);
+            }
+        }
+
+        private void CheckDateAreCorrect(DateTime date)
+        {
+            // Checking that dates are stripped of the hhmmss part
+            Assert.Equal(0, date.Hour);
+            Assert.Equal(0, date.Minute);
+            Assert.Equal(0, date.Second);
         }
     }
 }

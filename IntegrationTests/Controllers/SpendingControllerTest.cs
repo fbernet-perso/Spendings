@@ -18,6 +18,7 @@ namespace IntegrationTests.Controllers
         [Fact]
         public void ListOrderedWithWrongOrderBy_Fails()
         {
+            string wrongOrderBy = "loki";
             // Arrange
             using (SpendingContext spendingContext = new SpendingContext())
             {
@@ -25,7 +26,7 @@ namespace IntegrationTests.Controllers
                 SpendingController sut = new SpendingController(spendingRepository);
 
                 // Act
-                BadRequestResult actionResult = sut.ListByUserId(1, "loki") as BadRequestResult;
+                BadRequestResult actionResult = sut.ListByUserId(1, wrongOrderBy) as BadRequestResult;
 
                 // Assert 
                 Assert.Equal(400, actionResult.StatusCode);
@@ -74,6 +75,7 @@ namespace IntegrationTests.Controllers
         [Fact]
         public void AddSpendingMissingUser_Fails()
         {
+            int missingUserId = 42;
             // Arrange
             using (SpendingContext spendingContext = new SpendingContext())
             {
@@ -81,7 +83,7 @@ namespace IntegrationTests.Controllers
                 SpendingController sut = new SpendingController(spendingRepository);
 
                 // Act
-                BadRequestResult actionResult = sut.AddSpending(42, DateTime.UtcNow.AddDays(-1), 100, "USD", "Misc", "Armor") as BadRequestResult;
+                BadRequestResult actionResult = sut.AddSpending(missingUserId, DateTime.UtcNow.AddDays(-1), 100, "USD", "Misc", "Armor") as BadRequestResult;
 
                 // Assert
                 Assert.Equal(400, actionResult.StatusCode);
